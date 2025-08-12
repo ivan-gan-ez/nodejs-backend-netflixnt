@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 
 const app = express();
 
+app.use(express.json());
+
 // connect to mongodb with a mongoose
 async function connectToMongoDB() {
   try {
