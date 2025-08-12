@@ -4,6 +4,13 @@ const express = require("express");
 const router = express.Router();
 
 const Movie = require("../models/movie");
+const {
+  getMovies,
+  getMovie,
+  addMovie,
+  updateMovie,
+  deleteMovie,
+} = require("../controllers/movie");
 
 /*
   GET /movies - all movies
@@ -20,28 +27,15 @@ router.get("/", async (req, res) => {
   const genre = req.query.genre;
   const rating = req.query.rating;
 
-  // create empty object for filter
-  let filter = {};
-  // if director exists, then add to filter
-  if (director) {
-    filter.director = director;
-  }
-  if (genre) {
-    filter.genre = genre;
-  }
-  if (rating) {
-    filter.rating = { $gt: rating };
-  }
-
-  const movies = await Movie.find(filter).sort({ _id: 1 });
-  res.send(movies);
+  const movies = await getMovies(director, genre, rating);
+  res.status(200).send(movies);
 });
 
 // GET /movies/[id] - specific movie by id
 router.get("/:id", async (req, res) => {
   const id = req.params.id;
-  const movie = await Movie.findById(id);
-  res.send(movie);
+  const movie = await getMovie(id);
+  res.status(200).send(movie);
 });
 
 //  POST /movies - add new movie
@@ -66,17 +60,13 @@ router.post("/", async (req, res) => {
       return res.status(400).send({ message: "You're missing something." });
     }
 
-    // create new movie
-    const newMovie = new Movie({
-      title: title,
-      director: director,
-      release_year: release_year,
-      genre: genre,
-      rating: rating,
-    });
-
-    // save the new movie into mongodb
-    await newMovie.save();
+    const newMovie = await addMovie(
+      title,
+      director,
+      release_year,
+      genre,
+      rating
+    );
 
     res.send(newMovie);
   } catch (error) {
@@ -99,18 +89,12 @@ router.put("/:id", async (req, res) => {
     }
 
     const id = req.params.id;
-    const updatedMovie = await Movie.findByIdAndUpdate(
-      id,
-      {
-        title: title,
-        director: director,
-        release_year: release_year,
-        genre: genre,
-        rating: rating,
-      },
-      { new: true }
-    );
-    res.status(200).send(updatedMovie);
+
+    res
+      .status(200)
+      .send(
+        await updateMovie(id, title, director, release_year, genre, rating)
+      );
   } catch (error) {
     res.status(400).send({ message: "my ass is grass. send help" });
   }
@@ -121,9 +105,9 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    const deletedMovie = await Movie.findByIdAndDelete(id);
+    await deleteMovie(id);
     res.status(200).send({
-      message: `${deletedMovie.title} has been deleted.`,
+      message: `${id} has been deleted.`,
     });
   } catch (error) {
     res.status(400).send({ message: "my ass is grass. send help" });
